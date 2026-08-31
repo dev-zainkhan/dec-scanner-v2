@@ -1,0 +1,73 @@
+# DocScanner — environment & package inventory
+#
+# This is NOT a Python/pip file. Do not run `pip install -r requirements.txt`.
+# This is an organization laptop: do not `npm install`, do not add packages,
+# and do not download SDKs unless IT has already approved them.
+#
+# App dependencies live in package.json / package-lock.json (already listed).
+# Paper Studio UI rebuild added ads as a listed npm package (install on the test PC).
+
+# --- Runtime (already in package.json) ---
+# expo~=56.0.12
+# react==19.2.3
+# react-native==0.85.3
+# expo-router~=56.2.11
+# expo-constants~=56.0.18
+# expo-document-picker~=56.0.4
+# expo-file-system~=56.0.8
+# expo-image-manipulator~=56.0.19
+# expo-linking~=56.0.14
+# expo-print~=56.0.4
+# expo-sharing~=56.0.18
+# expo-status-bar~=56.0.4
+# expo-system-ui~=56.0.5
+# @expo/vector-icons^=15.0.2
+# @react-native-async-storage/async-storage==2.2.0
+# @react-navigation/bottom-tabs^=7.18.3
+# @cantoo/pdf-lib^=2.7.1
+# pdf-lib^=1.17.1
+# zustand^=5.0.14
+# react-native-document-scanner-plugin^=2.0.4
+# react-native-gesture-handler~=2.31.1
+# react-native-get-random-values~=1.11.0
+# react-native-google-mobile-ads^=15.8.0
+# react-native-pdf-to-image^=4.0.0
+# react-native-safe-area-context~=5.7.0
+# react-native-screens==4.25.2
+
+# --- Dev (already in package.json) ---
+# @types/react~=19.2.2
+# babel-preset-expo^=56.0.15
+# typescript~=6.0.3
+
+# --- Machine (Windows build; spaces in paths break the NDK) ---
+# Node.js LTS (whatever IT already installed)
+# JDK 17
+# Android SDK at C:\Android\Sdk
+# JAVA_HOME, ANDROID_HOME, TMP/TEMP=C:\jtmp, GRADLE_USER_HOME=C:\gradle-cache
+# See CONTEXT.md §3
+
+# --- Typecheck (use existing node_modules only; do not npm install) ---
+# node node_modules/typescript/bin/tsc --noEmit
+#
+# Do NOT add @types/react-native. React Native 0.85 ships its own types.
+# If tsc reports missing react-native / expo-file-system declarations, the
+# local node_modules tree is incomplete — restore from the existing
+# package-lock.json via IT, do not download new packages.
+#
+# Paper Studio UI: no leftover #1E88E5 / tintBlue. Scanner/PDF libs unchanged.
+
+# --- Docs ---
+# RUN.md              full beginner setup (empty laptop)
+# EXPO_GO.md          short Expo Go notes
+# APK_BUILD.md        short APK notes
+# scripts/env.ps1
+# scripts/start-expo-go.ps1
+# scripts/build-apk.ps1
+# npm run start:go
+# npm run apk:debug
+# npm run apk:release
+# jest
+# jest-expo
+# @testing-library/react-native
+# @types/jest
