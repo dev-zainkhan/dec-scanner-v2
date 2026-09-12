@@ -9,6 +9,7 @@ import { resolveSourcePdf, sourceName, type SplitSource } from '@/features/split
 import { getPdfPageCount, splitPdfInTwo, splitPdfEveryPage, type SplitPart } from '@/lib/pdfSplit';
 import { savePdfToDevice } from '@/lib/save';
 import { shareFile } from '@/lib/share';
+import { showInterstitialAd } from '@/lib/ads';
 import {
   Button, IconButton, PaperCard, ResultSuccess, Screen, SourceList, type SourceRow,
 } from '@/components/ui';
@@ -84,6 +85,7 @@ export default function SplitScreen() {
 
   const onSave = async (part: SplitPart) => {
     try {
+      await showInterstitialAd();
       const r = await savePdfToDevice(part.uri, `${name} ${part.label}.pdf`);
       if (r.status === 'saved') Alert.alert('Saved', 'The PDF was saved to your phone.');
     } catch (err) {
@@ -114,7 +116,7 @@ export default function SplitScreen() {
                     icon="share-social-outline"
                     accessibilityLabel={`Share ${p.label}`}
                     tone="primary"
-                    onPress={() => shareFile(p.uri, 'application/pdf')}
+                    onPress={async () => { await showInterstitialAd(); await shareFile(p.uri, 'application/pdf'); }}
                   />
                 </PaperCard>
               ))}

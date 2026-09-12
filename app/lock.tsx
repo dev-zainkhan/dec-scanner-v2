@@ -9,6 +9,7 @@ import { exportDocumentToPdf } from '@/lib/pdf';
 import { lockPdf } from '@/lib/lock';
 import { savePdfToDevice } from '@/lib/save';
 import { shareFile } from '@/lib/share';
+import { showInterstitialAd } from '@/lib/ads';
 import type { DocumentRecord } from '@/types';
 import { Button, ResultSuccess, Screen, SourceList, type SourceRow } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme/colors';
@@ -68,6 +69,7 @@ export default function LockScreen() {
   const onSave = async () => {
     if (!resultUri) return;
     try {
+      await showInterstitialAd();
       const r = await savePdfToDevice(resultUri, `${name} (locked).pdf`);
       if (r.status === 'saved') Alert.alert('Saved', 'The password-protected PDF was saved to your phone.');
     } catch (err) {
@@ -89,7 +91,7 @@ export default function LockScreen() {
             label="Share"
             icon="share-social-outline"
             variant="secondary"
-            onPress={() => shareFile(resultUri, 'application/pdf')}
+            onPress={async () => { await showInterstitialAd(); await shareFile(resultUri, 'application/pdf'); }}
           />
         </ResultSuccess>
       </Screen>

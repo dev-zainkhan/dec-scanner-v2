@@ -10,6 +10,7 @@ import { scanNewPages } from '@/lib/scanner';
 import { exportDocumentToPdf } from '@/lib/pdf';
 import { shareFile } from '@/lib/share';
 import { savePdfToDevice } from '@/lib/save';
+import { showInterstitialAd } from '@/lib/ads';
 import { Button, IconButton, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme/colors';
 import { type } from '@/theme/typography';
@@ -99,6 +100,7 @@ export default function DocumentScreen() {
     if (busy) return;
     setBusy('pdf');
     try {
+      await showInterstitialAd();
       const uri = await exportDocumentToPdf(doc);
       await shareFile(uri, 'application/pdf');
     } catch (err) {
@@ -112,6 +114,7 @@ export default function DocumentScreen() {
     if (busy) return;
     setBusy('save');
     try {
+      await showInterstitialAd();
       const uri = await exportDocumentToPdf(doc);
       const r = await savePdfToDevice(uri, `${doc.title}.pdf`);
       if (r.status === 'saved') Alert.alert('Saved', 'The PDF was saved to your phone.');

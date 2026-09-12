@@ -11,6 +11,7 @@ import {
 } from '@/lib/compress';
 import { savePdfToDevice } from '@/lib/save';
 import { shareFile } from '@/lib/share';
+import { showInterstitialAd } from '@/lib/ads';
 import type { DocumentRecord } from '@/types';
 import { Button, ResultSuccess, Screen, SourceList, type SourceRow } from '@/components/ui';
 import { colors, radius, spacing } from '@/theme/colors';
@@ -72,6 +73,7 @@ export default function CompressScreen() {
   const onSave = async () => {
     if (!result) return;
     try {
+      await showInterstitialAd();
       const r = await savePdfToDevice(result.uri, `${sourceName} (compressed).pdf`);
       if (r.status === 'saved') Alert.alert('Saved', 'The PDF was saved to your phone.');
     } catch (err) {
@@ -113,7 +115,7 @@ export default function CompressScreen() {
             label="Share"
             icon="share-social-outline"
             variant="secondary"
-            onPress={() => shareFile(result.uri, 'application/pdf')}
+            onPress={async () => { await showInterstitialAd(); await shareFile(result.uri, 'application/pdf'); }}
           />
         </ResultSuccess>
       </Screen>

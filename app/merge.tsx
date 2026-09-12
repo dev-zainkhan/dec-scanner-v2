@@ -7,6 +7,7 @@ import { useDocuments } from '@/store/documents';
 import { mergeSourcesToPdf, defaultMergedName, type MergeSource } from '@/features/merge';
 import { savePdfToDevice } from '@/lib/save';
 import { shareFile } from '@/lib/share';
+import { showInterstitialAd } from '@/lib/ads';
 import { Button, ResultSuccess, Screen, SourceList, type SourceRow } from '@/components/ui';
 import { colors, spacing } from '@/theme/colors';
 
@@ -87,6 +88,7 @@ export default function MergeScreen() {
   const onSave = async () => {
     if (!resultUri) return;
     try {
+      await showInterstitialAd();
       const r = await savePdfToDevice(resultUri, `${defaultMergedName()}.pdf`);
       if (r.status === 'saved') Alert.alert('Saved', 'The merged PDF was saved to your phone.');
     } catch (err) {
@@ -107,7 +109,7 @@ export default function MergeScreen() {
             label="Share"
             icon="share-social-outline"
             variant="secondary"
-            onPress={() => shareFile(resultUri, 'application/pdf')}
+            onPress={async () => { await showInterstitialAd(); await shareFile(resultUri, 'application/pdf'); }}
           />
         </ResultSuccess>
       </Screen>

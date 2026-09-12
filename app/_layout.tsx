@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/theme/colors';
 import { font } from '@/theme/typography';
+import { AdBanner } from '@/components/AdBanner';
 
 export default function RootLayout() {
   return (
@@ -31,6 +32,7 @@ export default function RootLayout() {
           <Stack.Screen name="lock" options={{ title: 'Lock PDF' }} />
           <Stack.Screen name="ads" options={{ title: 'Offers' }} />
         </Stack>
+        <AdBanner />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
