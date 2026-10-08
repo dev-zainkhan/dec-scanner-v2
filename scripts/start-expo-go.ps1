@@ -10,5 +10,5 @@ if (-not (Test-Path -LiteralPath (Join-Path $Root 'node_modules\expo'))) {
 }
 
 Write-Host 'Starting Expo Go on port 8081. Scan the QR with Expo Go (SDK 56).'
-Write-Host 'Scan will not work in Expo Go. Use the debug APK for camera. See RUN.md.'
+Write-Host 'Scan will not work in Expo Go. Use the debug APK for camera. See README.md.'
 npx expo start --go --port 8081

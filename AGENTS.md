@@ -1,8 +1,8 @@
 # Start here
 
-**Read [`CONTEXT.md`](./CONTEXT.md) first** — it explains the whole project: architecture,
-the build environment rules (there are critical path gotchas), how flows work, and the
-step-by-step recipe for adding a feature/tool.
+**Read [`TECHNICAL.md`](./TECHNICAL.md) first** for the app architecture, libraries, and
+feature workflows. Read [`README.md`](./README.md) for the verified Windows Android
+build requirements and procedure.
 
 # Expo HAS CHANGED
 

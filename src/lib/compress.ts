@@ -92,7 +92,7 @@ export async function compressPdfFile(uri: string, name: string, level: Compress
     convertB64 = mod.convertB64;
   } catch {
     throw new Error(
-      'Compressing a PDF from the phone needs a custom APK (not Expo Go). Build with npm run apk:debug — see APK_BUILD.md.',
+      'Compressing a PDF from the phone needs a custom APK (not Expo Go). Build with npm run apk:debug — see README.md.',
     );
   }
   const res = await convertB64(base64, SETTINGS[level].dpi);

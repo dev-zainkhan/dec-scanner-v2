@@ -49,4 +49,4 @@ if (Test-Path -LiteralPath $apkDir) {
   Get-ChildItem -LiteralPath $apkDir -Filter *.apk -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
 }
 Write-Host 'Install: adb install -r <apk>'
-Write-Host 'Steps: RUN.md'
+Write-Host 'Steps: README.md'

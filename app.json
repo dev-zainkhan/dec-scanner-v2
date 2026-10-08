@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DocScanner",
+    "name": "Scanova",
     "slug": "docscanner",
     "scheme": "docscanner",
     "version": "1.0.0",
@@ -18,9 +18,8 @@
     "android": {
       "package": "com.docscanner.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#061A55",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false

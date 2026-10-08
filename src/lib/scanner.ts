@@ -3,7 +3,7 @@ import { persistPageImage } from './storage';
 import type { Page } from '@/types';
 
 const SCANNER_MISSING =
-  'The camera scanner is not in Expo Go. Build a debug APK (npm run apk:debug) and install that — see APK_BUILD.md.';
+  'The camera scanner is not in Expo Go. Build a debug APK (npm run apk:debug) and install that — see README.md.';
 
 function isNativeMissing(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);

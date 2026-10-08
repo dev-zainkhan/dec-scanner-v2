@@ -9,7 +9,7 @@ export const ADS_TEST = {
 };
 
 export const ADS_MISSING =
-  'Ads need a debug APK, not Expo Go. Build the APK using RUN.md Part B.';
+  'Ads need a debug APK, not Expo Go. See README.md for build requirements.';
 
 export type AdsNative = {
   BannerAd: ComponentType<{

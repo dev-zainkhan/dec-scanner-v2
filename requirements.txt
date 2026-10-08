@@ -45,7 +45,7 @@
 # JDK 17
 # Android SDK at C:\Android\Sdk
 # JAVA_HOME, ANDROID_HOME, TMP/TEMP=C:\jtmp, GRADLE_USER_HOME=C:\gradle-cache
-# See CONTEXT.md §3
+# See README.md for the current Windows build requirements.
 
 # --- Typecheck (use existing node_modules only; do not npm install) ---
 # node node_modules/typescript/bin/tsc --noEmit
@@ -57,10 +57,9 @@
 #
 # Paper Studio UI: no leftover #1E88E5 / tintBlue. Scanner/PDF libs unchanged.
 
-# --- Docs ---
-# RUN.md              full beginner setup (empty laptop)
-# EXPO_GO.md          short Expo Go notes
-# APK_BUILD.md        short APK notes
+# --- Project guides ---
+# TECHNICAL.md        app architecture, libraries, and workflows
+# README.md           Windows Android build requirements and APK instructions
 # scripts/env.ps1
 # scripts/start-expo-go.ps1
 # scripts/build-apk.ps1
