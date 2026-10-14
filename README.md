@@ -23,8 +23,13 @@ compresses, and password-protects PDFs. Ads are served with Google AdMob.
 2. In Android Studio, open **Device Manager** and create a virtual device
    (any recent Pixel with a **Google APIs** or **Google Play** image).
 3. In **SDK Manager > SDK Tools**, install **NDK (Side by side)** and **CMake**.
-4. Clone into a folder **without spaces** (the Android NDK fails on spaces), then
-   run the setup script (checks the tools, installs JDK 17 if missing, runs `npm install`):
+4. Clone into a folder **without spaces**, e.g. `D:\scanova` (not `D:\scanova 2`).
+   The Android NDK fails with hundreds of "undefined symbol" linker errors when a
+   path has a space. If your Windows user name has a space (e.g. `C:\Users\Zain Khan`),
+   the scripts handle it automatically: they link the SDK to `C:\Android\Sdk` and
+   keep Gradle's files in `C:\gradle-cache` and `C:\jtmp`.
+
+   Then run the setup script (checks the tools, installs JDK 17 if missing, runs `npm install`):
 
    ```powershell
    npm run setup
