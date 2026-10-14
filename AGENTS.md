@@ -1,7 +1,8 @@
 # Start here
 
 - [`TECHNICAL.md`](./TECHNICAL.md): architecture, libraries, data model, flows.
-- [`README.md`](./README.md): dev setup and daily workflow (`npm run dev`).
+- [`GUIDE.md`](./GUIDE.md): step-by-step setup, daily workflow, releases, Git.
+- [`README.md`](./README.md): project overview and scripts.
 - [`docs/RELEASE.md`](./docs/RELEASE.md): signing, AdMob, Play Console.
 
 # Rules

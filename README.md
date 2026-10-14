@@ -4,6 +4,7 @@ Android document scanner and PDF toolkit built with Expo SDK 56, React Native 0.
 and TypeScript. Scans documents, keeps them on the device, and merges, splits,
 compresses, and password-protects PDFs. Ads are served with Google AdMob.
 
+- **Start here, step by step (setup, daily work, releases, Git): [GUIDE.md](./GUIDE.md)**
 - How the code is organized: [TECHNICAL.md](./TECHNICAL.md)
 - Publishing to Google Play (signing, AdMob, Play Console forms): [docs/RELEASE.md](./docs/RELEASE.md)
 - Privacy policy source (hosted on GitHub Pages): [docs/privacy-policy.html](./docs/privacy-policy.html)
