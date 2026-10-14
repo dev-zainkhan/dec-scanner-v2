@@ -1,50 +1,57 @@
-import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { shareFile } from './share';
+import { readBase64, sanitizeFileName, writeBase64 } from './files';
 
-const DIR_KEY = 'docscanner-save-dir-uri-v1';
+const SAF = FileSystem.StorageAccessFramework;
+const SAVE_DIR_KEY = 'scanova-save-dir';
 
-export type SaveResult =
-  | { status: 'saved'; uri: string }
-  | { status: 'cancelled' }
-  | { status: 'shared' };
+export async function sharePdf(uri: string): Promise<void> {
+  if (!(await Sharing.isAvailableAsync())) return;
+  await Sharing.shareAsync(uri, {
+    mimeType: 'application/pdf',
+    dialogTitle: 'Share PDF',
+    UTI: 'com.adobe.pdf',
+  });
+}
+
+async function chooseSaveDir(): Promise<string | null> {
+  const perm = await SAF.requestDirectoryPermissionsAsync();
+  if (!perm.granted) return null;
+  await AsyncStorage.setItem(SAVE_DIR_KEY, perm.directoryUri);
+  return perm.directoryUri;
+}
 
 /**
- * Saves a local PDF to a user-chosen folder on the phone using Android's Storage
- * Access Framework. The chosen folder is remembered, so the user only picks once
- * (e.g. "Downloads"). On iOS or if SAF is unavailable, falls back to the share sheet.
+ * Saves a PDF into a folder the user picks via Android's Storage Access Framework.
+ * The folder is remembered so the user only picks it once. Returns false if the
+ * user cancelled. Falls back to the share sheet outside Android.
  */
-export async function savePdfToDevice(srcUri: string, fileName: string): Promise<SaveResult> {
-  const SAF = (FileSystem as any).StorageAccessFramework;
-  if (Platform.OS !== 'android' || !SAF) {
-    await shareFile(srcUri, 'application/pdf');
-    return { status: 'shared' };
+export async function savePdfToDevice(srcUri: string, fileName: string): Promise<boolean> {
+  if (Platform.OS !== 'android') {
+    await sharePdf(srcUri);
+    return true;
   }
 
-  let dirUri = await AsyncStorage.getItem(DIR_KEY);
-  if (!dirUri) {
-    const perm = await SAF.requestDirectoryPermissionsAsync();
-    if (!perm.granted) return { status: 'cancelled' };
-    dirUri = perm.directoryUri as string;
-    await AsyncStorage.setItem(DIR_KEY, dirUri);
+  const base64 = await readBase64(srcUri);
+  const name = sanitizeFileName(fileName.replace(/\.pdf$/i, ''));
+  const write = async (dir: string) =>
+    writeBase64(await SAF.createFileAsync(dir, name, 'application/pdf'), base64);
+
+  const remembered = await AsyncStorage.getItem(SAVE_DIR_KEY);
+  if (remembered) {
+    try {
+      await write(remembered);
+      return true;
+    } catch {
+      // Folder access was revoked or the folder was deleted: ask again below.
+      await AsyncStorage.removeItem(SAVE_DIR_KEY);
+    }
   }
 
-  const base64 = await FileSystem.readAsStringAsync(srcUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  const baseName = fileName.replace(/[\\/:*?"<>|]+/g, '_').replace(/\.pdf$/i, '');
-
-  try {
-    const fileUri = await SAF.createFileAsync(dirUri, baseName, 'application/pdf');
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    return { status: 'saved', uri: fileUri };
-  } catch (e) {
-    // The remembered folder may have been revoked/deleted — forget it so the
-    // next attempt re-prompts, then surface the error.
-    await AsyncStorage.removeItem(DIR_KEY);
-    throw e;
-  }
+  const dir = await chooseSaveDir();
+  if (!dir) return false;
+  await write(dir);
+  return true;
 }

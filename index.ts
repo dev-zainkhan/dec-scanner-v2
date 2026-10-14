@@ -1,4 +1,3 @@
-// Secure crypto.getRandomValues polyfill — MUST load before anything that encrypts
-// (used by the Lock PDF feature via @cantoo/pdf-lib + crypto-js).
+// Must load before anything that encrypts: Lock PDF (@cantoo/pdf-lib) needs crypto.getRandomValues.
 import 'react-native-get-random-values';
 import 'expo-router/entry';

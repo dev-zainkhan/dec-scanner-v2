@@ -1,8 +1,7 @@
-import { Image } from 'react-native';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system/legacy';
-import { exportImagesToPdf, exportDocumentToPdf } from './pdf';
-import { readAsBase64 } from './storage';
+import { convertB64 } from 'react-native-pdf-to-image';
+import { deleteFile, fileSize, getImageSize, readBase64 } from './files';
+import { documentToPdf, imagesToPdf } from './pdf';
 import type { DocumentRecord } from '@/types';
 
 export type CompressLevel = 'light' | 'balanced' | 'strong';
@@ -13,98 +12,77 @@ export const COMPRESS_LEVELS: { id: CompressLevel; label: string; hint: string }
   { id: 'strong', label: 'Strong', hint: 'Smallest file, lower quality' },
 ];
 
-const SETTINGS: Record<CompressLevel, { maxEdge: number; quality: number; dpi: number }> = {
-  light: { maxEdge: 2400, quality: 0.7, dpi: 200 },
-  balanced: { maxEdge: 1600, quality: 0.55, dpi: 150 },
-  strong: { maxEdge: 1200, quality: 0.4, dpi: 110 },
+/**
+ * maxEdge/quality: how page images are re-encoded.
+ * renderWidth: pixel width used when rasterizing pages of an imported PDF.
+ */
+const SETTINGS: Record<CompressLevel, { maxEdge: number; quality: number; renderWidth: number }> = {
+  light: { maxEdge: 2400, quality: 0.7, renderWidth: 1700 },
+  balanced: { maxEdge: 1600, quality: 0.55, renderWidth: 1300 },
+  strong: { maxEdge: 1200, quality: 0.4, renderWidth: 1000 },
 };
-
-async function fileSize(uri: string): Promise<number> {
-  const info = await FileSystem.getInfoAsync(uri);
-  return info.exists && !info.isDirectory ? (info.size ?? 0) : 0;
-}
-
-function normalizeUri(path: string): string {
-  if (path.startsWith('file://') || path.startsWith('content://')) return path;
-  return `file://${path}`;
-}
-
-function getImageSize(uri: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve) => {
-    Image.getSize(uri, (width, height) => resolve({ width, height }), () => resolve({ width: 0, height: 0 }));
-  });
-}
-
-/** Re-encodes one image smaller (downscale longer edge + lower JPEG quality). */
-async function compressImageFile(uri: string, level: CompressLevel): Promise<string> {
-  const { maxEdge, quality } = SETTINGS[level];
-  const { width, height } = await getImageSize(uri);
-  let actions: { resize: { width?: number; height?: number } }[] = [];
-  if (width && height) {
-    if (width >= height && width > maxEdge) actions = [{ resize: { width: maxEdge } }];
-    else if (height > width && height > maxEdge) actions = [{ resize: { height: maxEdge } }];
-  }
-  const result = await manipulateAsync(uri, actions, { compress: quality, format: SaveFormat.JPEG });
-  return result.uri;
-}
 
 export interface CompressResult {
   uri: string;
   originalSize: number;
   compressedSize: number;
-  /** false when compression didn't help (we kept the original). */
+  /** False when compression didn't help, in which case the original is kept. */
   gained: boolean;
+}
+
+/** Downscales the longer edge and lowers JPEG quality. */
+async function compressImage(uri: string, level: CompressLevel): Promise<string> {
+  const { maxEdge, quality } = SETTINGS[level];
+  const { width, height } = await getImageSize(uri);
+  const resize =
+    width >= height && width > maxEdge ? { width: maxEdge }
+    : height > width && height > maxEdge ? { height: maxEdge }
+    : null;
+  const result = await manipulateAsync(uri, resize ? [{ resize }] : [], {
+    compress: quality,
+    format: SaveFormat.JPEG,
+  });
+  return result.uri;
 }
 
 async function rebuildFromImages(imageUris: string[], name: string, level: CompressLevel) {
   const compressed: string[] = [];
-  for (const img of imageUris) compressed.push(await compressImageFile(img, level));
-  const pdf = await exportImagesToPdf(compressed, name);
-  await Promise.all(compressed.map((u) => FileSystem.deleteAsync(u, { idempotent: true }).catch(() => {})));
-  return pdf;
+  for (const uri of imageUris) compressed.push(await compressImage(uri, level));
+  try {
+    return await imagesToPdf(compressed, name);
+  } finally {
+    await Promise.all(compressed.map(deleteFile));
+  }
 }
 
-function finalize(originalUri: string, originalSize: number, candidateUri: string, candidateSize: number): CompressResult {
-  if (candidateSize > 0 && candidateSize < originalSize) {
-    return { uri: candidateUri, originalSize, compressedSize: candidateSize, gained: true };
+async function pickSmaller(originalUri: string, candidateUri: string): Promise<CompressResult> {
+  const originalSize = await fileSize(originalUri);
+  const compressedSize = await fileSize(candidateUri);
+  if (compressedSize > 0 && compressedSize < originalSize) {
+    return { uri: candidateUri, originalSize, compressedSize, gained: true };
   }
-  // No improvement (e.g. a text PDF): keep the original, don't pretend.
-  FileSystem.deleteAsync(candidateUri, { idempotent: true }).catch(() => {});
+  await deleteFile(candidateUri);
   return { uri: originalUri, originalSize, compressedSize: originalSize, gained: false };
 }
 
-/** Compress an in-app scanned document (re-encode its page images). */
-export async function compressDocument(doc: DocumentRecord, level: CompressLevel): Promise<CompressResult> {
-  if (doc.pages.length === 0) throw new Error('Document has no pages');
-  const originalPdf = await exportDocumentToPdf(doc);
-  const originalSize = await fileSize(originalPdf);
-  const compressedPdf = await rebuildFromImages(doc.pages.map((p) => p.processedUri), `${doc.title} (compressed)`, level);
-  return finalize(originalPdf, originalSize, compressedPdf, await fileSize(compressedPdf));
-}
-
-/** Compress an external/imported PDF by rendering its pages to images, then re-encoding. */
-export async function compressPdfFile(uri: string, name: string, level: CompressLevel): Promise<CompressResult> {
-  const originalSize = await fileSize(uri);
-  const base64 = await readAsBase64(uri);
-  let convertB64: (b64: string, dpi: number) => Promise<{ outputFiles?: string[] }>;
+/**
+ * Compresses a PDF by rasterizing each page and re-encoding the images.
+ * Text in the result is no longer selectable.
+ */
+export async function compressPdf(uri: string, name: string, level: CompressLevel): Promise<CompressResult> {
+  const { outputFiles } = await convertB64(await readBase64(uri), SETTINGS[level].renderWidth);
+  const pageImages = (outputFiles ?? []).map((p) => (p.startsWith('file://') ? p : `file://${p}`));
+  if (pageImages.length === 0) throw new Error('Could not read the pages of this PDF.');
   try {
-    const mod = await import('react-native-pdf-to-image');
-    convertB64 = mod.convertB64;
-  } catch {
-    throw new Error(
-      'Compressing a PDF from the phone needs a custom APK (not Expo Go). Build with npm run apk:debug — see APK_BUILD.md.',
-    );
+    return await pickSmaller(uri, await rebuildFromImages(pageImages, `${name} (compressed)`, level));
+  } finally {
+    await Promise.all(pageImages.map(deleteFile));
   }
-  const res = await convertB64(base64, SETTINGS[level].dpi);
-  const pageImages = (res.outputFiles ?? []).map(normalizeUri);
-  if (pageImages.length === 0) throw new Error('Could not read the PDF pages');
-  const compressedPdf = await rebuildFromImages(pageImages, `${name} (compressed)`, level);
-  await Promise.all(pageImages.map((u) => FileSystem.deleteAsync(u, { idempotent: true }).catch(() => {})));
-  return finalize(uri, originalSize, compressedPdf, await fileSize(compressedPdf));
 }
 
-export function formatBytes(n: number): string {
-  if (n <= 0) return '0 KB';
-  if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+/** Compresses a scanned document by re-encoding its page images directly. */
+export async function compressDocument(doc: DocumentRecord, level: CompressLevel): Promise<CompressResult> {
+  const original = await documentToPdf(doc);
+  const pageImages = doc.pages.map((p) => p.uri);
+  return pickSmaller(original, await rebuildFromImages(pageImages, `${doc.title} (compressed)`, level));
 }

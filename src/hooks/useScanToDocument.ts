@@ -1,32 +1,33 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { scanNewPages } from '@/lib/scanner';
+import { scanPages } from '@/lib/scanner';
+import { errorMessage } from '@/features/fileActions';
 import { useDocuments } from '@/store/documents';
 
-/**
- * Shared "scan -> new document -> open it" flow used by both the Home screen
- * and the Tools grid, so the behaviour stays identical everywhere.
- */
+/** Scan → create a document → open it. Shared by the Home and Tools tabs. */
 export function useScanToDocument() {
   const router = useRouter();
   const createDocument = useDocuments((s) => s.createDocument);
   const [scanning, setScanning] = useState(false);
+  const inFlight = useRef(false);
 
   const scan = useCallback(async () => {
-    if (scanning) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setScanning(true);
     try {
-      const pages = await scanNewPages();
-      if (pages.length === 0) return; // user cancelled
-      const doc = createDocument('', pages);
+      const pages = await scanPages();
+      if (pages.length === 0) return;
+      const doc = createDocument(pages);
       router.push({ pathname: '/document/[id]', params: { id: doc.id } });
     } catch (err) {
-      Alert.alert('Scan failed', err instanceof Error ? err.message : String(err));
+      Alert.alert('Scan failed', errorMessage(err));
     } finally {
+      inFlight.current = false;
       setScanning(false);
     }
-  }, [scanning, createDocument, router]);
+  }, [createDocument, router]);
 
   return { scan, scanning };
 }

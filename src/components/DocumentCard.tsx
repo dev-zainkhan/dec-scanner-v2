@@ -1,43 +1,30 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, shadow } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { pageCount, relativeDate } from '@/lib/format';
+import { colors, radius, shadow, spacing, type } from '@/theme';
 import type { DocumentRecord } from '@/types';
 
 interface Props {
   doc: DocumentRecord;
   onPress: () => void;
-  variant?: 'list' | 'grid';
+  variant: 'list' | 'grid';
 }
 
-function formatRelativeDate(ts: number): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfThat = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dayDiff = Math.round((startOfToday - startOfThat) / 86_400_000);
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (dayDiff === 0) return `Today, ${time}`;
-  if (dayDiff === 1) return 'Yesterday';
-  if (d.getFullYear() === now.getFullYear()) {
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  }
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-export function DocumentCard({ doc, onPress, variant = 'list' }: Props) {
-  const cover = doc.pages[0]?.processedUri;
-  const pages = `${doc.pages.length} ${doc.pages.length === 1 ? 'page' : 'pages'}`;
-  const date = formatRelativeDate(doc.updatedAt);
+export function DocumentCard({ doc, onPress, variant }: Props) {
+  const cover = doc.pages[0]?.uri;
+  const date = relativeDate(doc.updatedAt);
+  const thumb = cover ? (
+    <Image source={{ uri: cover }} style={styles.cover} resizeMode="cover" />
+  ) : null;
 
   if (variant === 'grid') {
     return (
-      <Pressable onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.gridCard, pressed && styles.pressed]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.gridCard, pressed && styles.pressed]}
+      >
         <View style={styles.gridThumb}>
-          {cover ? (
-            <Image source={{ uri: cover }} style={styles.cover} resizeMode="cover" />
-          ) : (
-            <View style={[styles.cover, styles.empty]} />
-          )}
+          {thumb}
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{doc.pages.length}</Text>
           </View>
@@ -49,17 +36,15 @@ export function DocumentCard({ doc, onPress, variant = 'list' }: Props) {
   }
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.listCard, pressed && styles.pressed]}>
-      <View style={styles.listThumb}>
-        {cover ? (
-          <Image source={{ uri: cover }} style={styles.cover} resizeMode="cover" />
-        ) : (
-          <View style={[styles.cover, styles.empty]} />
-        )}
-      </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.listCard, pressed && styles.pressed]}
+    >
+      <View style={styles.listThumb}>{thumb}</View>
       <View style={styles.listMeta}>
         <Text style={styles.listTitle} numberOfLines={1}>{doc.title}</Text>
-        <Text style={styles.meta}>{pages} · {date}</Text>
+        <Text style={styles.meta}>{pageCount(doc.pages.length)} · {date}</Text>
       </View>
     </Pressable>
   );
@@ -86,7 +71,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   listMeta: { flex: 1 },
-  listTitle: { ...type.label, fontSize: 16, marginBottom: 4, color: colors.text },
+  listTitle: { ...type.label, fontSize: 16, marginBottom: 4 },
   gridCard: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -104,9 +89,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     marginBottom: spacing.sm,
   },
-  gridTitle: { ...type.label, fontSize: 14, color: colors.text, paddingHorizontal: 2 },
+  gridTitle: { ...type.label, fontSize: 14, paddingHorizontal: 2 },
   cover: { width: '100%', height: '100%' },
-  empty: { backgroundColor: colors.surfaceAlt },
   meta: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 2, marginTop: 2 },
   badge: {
     position: 'absolute',

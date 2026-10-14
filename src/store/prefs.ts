@@ -16,7 +16,7 @@ export const usePrefs = create<PrefsState>()(
       setLibraryLayout: (libraryLayout) => set({ libraryLayout }),
     }),
     {
-      name: 'docscanner-prefs-v1',
+      name: 'scanova-prefs',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

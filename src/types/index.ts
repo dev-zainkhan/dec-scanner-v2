@@ -1,12 +1,7 @@
-export type FilterId = 'original' | 'color' | 'bw';
-
 export interface Page {
   id: string;
-  /** Original scanned image (already cropped by the native scanner). */
-  originalUri: string;
-  /** Image with the chosen filter baked in. Equals originalUri when filter === 'original'. */
-  processedUri: string;
-  filter: FilterId;
+  /** Scanned image, already cropped by the native scanner. */
+  uri: string;
   width: number;
   height: number;
   createdAt: number;

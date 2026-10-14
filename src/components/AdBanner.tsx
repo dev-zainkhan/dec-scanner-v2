@@ -1,40 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { loadAdsNative, ADS_TEST, type AdsNative } from '@/lib/ads';
-import { colors } from '@/theme/colors';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { AD_UNITS, useAds } from '@/lib/ads';
+import { colors } from '@/theme';
 
+/** Anchored banner at the bottom of the app. Takes no space until an ad has loaded. */
 export function AdBanner() {
-  const [native, setNative] = useState<AdsNative | null>(null);
+  const canShowAds = useAds((s) => s.canShowAds);
+  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    loadAdsNative().then((loaded) => {
-      if (alive) setNative(loaded);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (!native) return null;
+  if (!canShowAds || !AD_UNITS.banner) return null;
 
   return (
-    <View style={styles.footer}>
-      <native.BannerAd
-        unitId={native.TestIds.BANNER || ADS_TEST.banner}
-        size={native.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+    <View style={[styles.footer, loaded && styles.divider]}>
+      <BannerAd
+        unitId={AD_UNITS.banner}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        onAdLoaded={() => setLoaded(true)}
+        onAdFailedToLoad={() => setLoaded(false)}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  footer: {
-    alignItems: 'center',
-    backgroundColor: colors.bg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    minHeight: 50,
-    width: '100%',
-  },
+  footer: { alignItems: 'center', backgroundColor: colors.bg },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
 });

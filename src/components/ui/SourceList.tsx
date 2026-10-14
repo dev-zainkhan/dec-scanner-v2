@@ -1,8 +1,7 @@
 import { type ReactElement } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { colors, radius, spacing, type } from '@/theme';
 
 export interface SourceRow {
   key: string;
@@ -10,10 +9,6 @@ export interface SourceRow {
   subtitle: string;
   coverUri?: string;
   icon?: keyof typeof Ionicons.glyphMap;
-  selectable?: boolean;
-  selected?: boolean;
-  order?: number;
-  trailing?: 'chevron' | 'none';
 }
 
 interface Props {
@@ -23,9 +18,10 @@ interface Props {
   importLabel: string;
   hint?: string;
   emptyText: string;
-  contentPaddingBottom?: number;
+  /** Multi-select mode: keys in the order they were picked (shown as numbered badges). */
+  selectedKeys?: string[];
   listHeader?: ReactElement | null;
-  listFooter?: ReactElement | null;
+  contentPaddingBottom?: number;
 }
 
 export function SourceList({
@@ -35,21 +31,24 @@ export function SourceList({
   importLabel,
   hint,
   emptyText,
-  contentPaddingBottom = spacing.lg,
+  selectedKeys,
   listHeader,
-  listFooter,
+  contentPaddingBottom = spacing.lg,
 }: Props) {
+  const multi = selectedKeys !== undefined;
+
   return (
     <FlatList
       data={items}
-      keyExtractor={(item: SourceRow) => item.key}
-      style={{ flex: 1 }}
+      keyExtractor={(item) => item.key}
+      style={styles.list}
       contentContainerStyle={{ padding: spacing.lg, paddingBottom: contentPaddingBottom }}
       ListHeaderComponent={
         <View>
           <Pressable
             onPress={onImport}
-            style={({ pressed }: { pressed: boolean }) => [styles.importBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.importBtn, pressed && styles.pressed]}
           >
             <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
             <Text style={styles.importText}>{importLabel}</Text>
@@ -58,55 +57,50 @@ export function SourceList({
           {listHeader}
         </View>
       }
-      ListFooterComponent={listFooter ?? null}
       ListEmptyComponent={<Text style={styles.empty}>{emptyText}</Text>}
-      renderItem={({ item }: { item: SourceRow }) => (
-        <Pressable
-          onPress={() => onPressItem(item)}
-          style={({ pressed }: { pressed: boolean }) => [
-            styles.row,
-            item.selected && styles.rowSelected,
-            pressed && styles.pressed,
-          ]}
-        >
-          {item.selectable ? (
-            <View style={[styles.badge, item.selected && styles.badgeOn]}>
-              {item.selected && item.order != null ? (
-                <Text style={styles.badgeText}>{item.order}</Text>
+      renderItem={({ item }) => {
+        const order = selectedKeys ? selectedKeys.indexOf(item.key) + 1 : 0;
+        const selected = order > 0;
+        return (
+          <Pressable
+            onPress={() => onPressItem(item)}
+            accessibilityRole={multi ? 'checkbox' : 'button'}
+            accessibilityState={multi ? { checked: selected } : undefined}
+            style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && styles.pressed]}
+          >
+            {multi ? (
+              <View style={[styles.badge, selected && styles.badgeOn]}>
+                {selected ? <Text style={styles.badgeText}>{order}</Text> : <View style={styles.badgeEmpty} />}
+              </View>
+            ) : null}
+            <View style={styles.thumb}>
+              {item.coverUri ? (
+                <Image source={{ uri: item.coverUri }} style={styles.thumbImg} />
               ) : (
-                <View style={styles.badgeEmpty} />
+                <Ionicons name={item.icon ?? 'document-text'} size={22} color={colors.textMuted} />
               )}
             </View>
-          ) : null}
-          <View style={styles.thumb}>
-            {item.coverUri ? (
-              <Image source={{ uri: item.coverUri }} style={styles.thumbImg} />
-            ) : (
-              <Ionicons name={item.icon ?? 'document-text'} size={22} color={colors.textMuted} />
-            )}
-          </View>
-          <View style={styles.meta}>
-            <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.sub}>{item.subtitle}</Text>
-          </View>
-          {item.trailing === 'chevron' ? (
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          ) : null}
-        </Pressable>
-      )}
+            <View style={styles.meta}>
+              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.sub}>{item.subtitle}</Text>
+            </View>
+            {multi ? null : <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+          </Pressable>
+        );
+      }}
     />
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
   importBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.tintTeal,
     borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    padding: spacing.md,
     marginBottom: spacing.md,
   },
   importText: { color: colors.primary, fontSize: 15, fontWeight: '700', flex: 1 },
@@ -123,10 +117,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
-  rowSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.tintTeal,
-  },
+  rowSelected: { borderColor: colors.primary, backgroundColor: colors.tintTeal },
   badge: {
     width: 26,
     height: 26,

@@ -3,7 +3,6 @@ import { colors } from './colors';
 
 export const font = {
   serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) as string,
-  sans: Platform.select({ ios: 'System', android: 'sans-serif', default: undefined }),
 };
 
 export const type = {

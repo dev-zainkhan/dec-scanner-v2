@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '@/theme/colors';
+import { colors, radius, spacing } from '@/theme';
 import type { Page } from '@/types';
 
 interface Props {
@@ -13,9 +13,12 @@ export function PageThumbnail({ page, index, selected, onSelect }: Props) {
   return (
     <Pressable
       onPress={onSelect}
-      style={({ pressed }: { pressed: boolean }) => [styles.sheet, selected && styles.sheetSelected, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`Page ${index + 1}`}
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [styles.sheet, selected && styles.sheetSelected, pressed && styles.pressed]}
     >
-      <Image source={{ uri: page.processedUri }} style={styles.thumb} resizeMode="cover" />
+      <Image source={{ uri: page.uri }} style={styles.thumb} resizeMode="cover" />
       <View style={[styles.indexBadge, selected && styles.indexBadgeOn]}>
         <Text style={styles.indexText}>{index + 1}</Text>
       </View>
@@ -41,7 +44,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     left: 4,
-    backgroundColor: 'rgba(28, 25, 21, 0.7)',
+    backgroundColor: colors.overlay,
     minWidth: 20,
     height: 20,
     borderRadius: 10,
