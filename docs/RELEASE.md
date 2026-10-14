@@ -1,41 +1,32 @@
-# Releasing Scanova on Google Play
+# Releasing PDF & Image Scanner on Google Play
 
 A step-by-step guide for the first release, followed by the routine for updates.
 Steps 1–2 are done once and are reused by all your future apps.
 
 ## 1. Create your upload key (once, keep it forever)
 
-Play Console identifies you by this key. If you lose it, you must ask Google
-support to reset it, so back it up (password manager plus an offline copy).
+Play Console identifies your uploads by this key. If you lose it, you must ask
+Google support to reset it, which takes days.
 
 ```powershell
-. .\scripts\env.ps1
-New-Item -ItemType Directory -Force "$env:USERPROFILE\keys" | Out-Null
-& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -v -storetype PKCS12 `
-  -keystore "$env:USERPROFILE\keys\scanova-upload.jks" `
-  -alias scanova-upload -keyalg RSA -keysize 2048 -validity 10000
+npm run create-upload-key
 ```
 
-It asks for a password and your name/organization (`env.ps1` sets `JAVA_HOME` to JDK 17). Then create (or edit)
-`%USERPROFILE%\.gradle\gradle.properties`, which lives **outside** the project,
-so it is never committed:
+It asks for your name and a password (typed hidden) and creates, inside the project:
 
-```properties
-SCANOVA_UPLOAD_STORE_FILE=C:/Users/<you>/keys/scanova-upload.jks
-SCANOVA_UPLOAD_STORE_PASSWORD=<the password>
-SCANOVA_UPLOAD_KEY_ALIAS=scanova-upload
-SCANOVA_UPLOAD_KEY_PASSWORD=<the password>
-```
+- `keys\upload-key.jks`: the key itself
+- `signing.properties`: where the key is and its password
 
-Use forward slashes in the path. The `plugins/withReleaseSigning.js` config
-plugin picks these up automatically for release builds.
+Both are git-ignored, so they are never pushed to GitHub. **Back up both files right
+away** (Google Drive + a USB stick) and keep the password in a password manager.
+`plugins/withReleaseSigning.js` uses them automatically for release builds.
 
 ## 2. Set up AdMob (once per account, then per app)
 
 1. Sign up at <https://admob.google.com> with the Google account you'll use for
    all your apps, and complete payments/tax info.
 2. **Apps > Add app** > Android > "Is the app listed on a supported app store?"
-   **No** (for now) > name it **Scanova**. Copy the **App ID**
+   **No** (for now) > name it **PDF & Image Scanner**. Copy the **App ID**
    (`ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY`).
 3. In that app, **Ad units > Add ad unit**:
    - **Banner** (it will be shown as an anchored adaptive banner). Copy its ID.
@@ -54,7 +45,7 @@ plugin picks these up automatically for release builds.
    Debug builds keep using Google's test ads regardless; only release builds use
    these IDs. Run `npm run dev:rebuild` once afterwards (the App ID is native config).
 5. **Privacy & messaging > European regulations (GDPR)**: create a message for
-   Scanova and publish it. The app already shows it through Google's User
+   PDF & Image Scanner and publish it. The app already shows it through Google's User
    Messaging Platform, and the "Ad privacy choices" row in Settings appears
    automatically for users who need it. Without a published message, ads in the
    EEA/UK are limited. Optionally also publish a **US state regulations** message.
@@ -91,7 +82,7 @@ install on a phone with `adb install -r android\app\build\outputs\apk\release\ap
 1. Create a developer account at <https://play.google.com/console> (one-time fee).
    **New personal accounts must run a closed test with at least 12 testers for
    14 days before they can publish to production.** Plan for this.
-2. **Create app**: name Scanova, App, Free, accept the declarations.
+2. **Create app**: name PDF & Image Scanner, App, Free, accept the declarations.
 3. **Test and release > Testing > Internal testing**: create a release, upload the
    `.aab`, and accept **Play App Signing** (Google keeps the app-signing key; your
    upload key only proves uploads come from you).

@@ -1,4 +1,4 @@
-# Scanova: technical overview
+# PDF & Image Scanner: technical overview
 
 Android-first document scanner built with Expo SDK 56 (React Native 0.85,
 TypeScript, Expo Router). Everything runs on the device; there is no backend.
@@ -60,7 +60,7 @@ scripts/                     dev.ps1, build-release.ps1, env.ps1
   `Page { id, uri, width, height, createdAt }`.
 - Page images live in `<documentDirectory>/pages/`. Deleting a page or
   document deletes its files.
-- The library is persisted under AsyncStorage key `scanova-documents`
+- The library is persisted under AsyncStorage key `documents`
   (schema `version: 1`). Bump the version and add a `migrate` function
   whenever the stored shape changes.
 - Every exported/tool PDF is written to its own folder under

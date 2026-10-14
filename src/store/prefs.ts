@@ -16,7 +16,7 @@ export const usePrefs = create<PrefsState>()(
       setLibraryLayout: (libraryLayout) => set({ libraryLayout }),
     }),
     {
-      name: 'scanova-prefs',
+      name: 'prefs',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

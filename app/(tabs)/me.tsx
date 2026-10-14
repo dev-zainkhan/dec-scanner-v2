@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { useDocuments } from '@/store/documents';
 import { openAdPrivacyOptions, useAds } from '@/lib/ads';
 import { errorMessage } from '@/features/fileActions';
-import { PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '@/config/app';
+import { APP_NAME, PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '@/config/app';
 import { PaperCard, Screen, ScreenHeader } from '@/components/ui';
 import { colors, radius, spacing, type } from '@/theme';
 
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
               <Ionicons name="scan" size={26} color={colors.primaryText} />
             </View>
             <View>
-              <Text style={styles.heroTitle}>Scanova</Text>
+              <Text style={styles.heroTitle}>{APP_NAME}</Text>
               <Text style={styles.heroSub}>Version {version}</Text>
             </View>
           </PaperCard>
@@ -86,13 +86,13 @@ export default function SettingsScreen() {
             <SettingsRow
               icon="mail-outline"
               label="Contact support"
-              onPress={() => openUrl(`mailto:${SUPPORT_EMAIL}?subject=Scanova%20support`)}
+              onPress={() => openUrl(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${APP_NAME} support`)}`)}
             />
           </PaperCard>
         </View>
 
         <Text style={styles.footer}>
-          Scans and PDFs are processed on your device and are never uploaded by Scanova.
+          Scans and PDFs are processed on your device and are never uploaded.
         </Text>
       </ScrollView>
     </Screen>

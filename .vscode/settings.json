@@ -6,10 +6,17 @@
   "files.trimTrailingWhitespace": true,
   "files.exclude": {
     "android": true,
-    ".expo": true
+    ".expo": true,
+    ".build-cache": true
   },
   "search.exclude": {
     "android": true,
-    "node_modules": true
+    "node_modules": true,
+    ".build-cache": true
+  },
+  "files.watcherExclude": {
+    "**/.build-cache/**": true,
+    "**/android/**": true,
+    "**/node_modules/**": true
   }
 }

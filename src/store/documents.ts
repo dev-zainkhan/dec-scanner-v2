@@ -70,7 +70,7 @@ export const useDocuments = create<DocumentsState>()(
       };
     },
     {
-      name: 'scanova-documents',
+      name: 'documents',
       // Bump and add a `migrate` function whenever the persisted shape changes.
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),

@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'env.ps1')
 
-$package = 'com.zainkhan.scanova'
+$package = 'com.zainkhan.pdfimagesscanner'
 # Local development needs no Expo servers; skipping their version checks avoids hangs on slow networks.
 $env:EXPO_OFFLINE = '1'
 

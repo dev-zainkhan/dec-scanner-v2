@@ -13,11 +13,9 @@ Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..'))
 
 if (-not (Test-Path -LiteralPath 'node_modules\expo')) { throw 'Run npm install first.' }
 
-$gradleProps = Join-Path $env:USERPROFILE '.gradle\gradle.properties'
-$hasUploadKey = (Test-Path -LiteralPath $gradleProps) -and
-  (Select-String -LiteralPath $gradleProps -Pattern '^\s*SCANOVA_UPLOAD_STORE_FILE\s*=' -Quiet)
+$hasUploadKey = Test-Path -LiteralPath 'signing.properties'
 if ($Target -eq 'aab' -and -not $hasUploadKey) {
-  throw "Upload key not configured in $gradleProps. See docs/RELEASE.md (step 1)."
+  throw 'No upload key yet. Run  npm run create-upload-key  first (see docs/RELEASE.md, step 1).'
 }
 
 if (Select-String -LiteralPath 'src\config\admob.json' -Pattern '3940256099942544' -Quiet) {

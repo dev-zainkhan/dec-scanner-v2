@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { readBase64, sanitizeFileName, writeBase64 } from './files';
 
 const SAF = FileSystem.StorageAccessFramework;
-const SAVE_DIR_KEY = 'scanova-save-dir';
+const SAVE_DIR_KEY = 'save-dir';
 
 export async function sharePdf(uri: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) return;

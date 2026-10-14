@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Scanova: Dev (emulator + live reload)",
+      "label": "Dev (emulator + live reload)",
       "type": "npm",
       "script": "dev",
       "isBackground": true,
@@ -12,7 +12,7 @@
       "presentation": { "panel": "dedicated", "reveal": "always" }
     },
     {
-      "label": "Scanova: Rebuild native app",
+      "label": "Rebuild native app",
       "detail": "After adding a package or changing app.config.ts",
       "type": "npm",
       "script": "dev:rebuild",
@@ -21,13 +21,13 @@
       "presentation": { "panel": "dedicated", "reveal": "always" }
     },
     {
-      "label": "Scanova: Typecheck",
+      "label": "Typecheck",
       "type": "npm",
       "script": "typecheck",
       "problemMatcher": "$tsc"
     },
     {
-      "label": "Scanova: Build release AAB",
+      "label": "Build release AAB",
       "type": "npm",
       "script": "build:aab",
       "problemMatcher": []

@@ -1,5 +1,5 @@
 {
-  "name": "scanova",
+  "name": "pdf-image-scanner",
   "version": "1.0.0",
   "private": true,
   "main": "index.ts",
@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "doctor": "npx expo-doctor",
     "build:aab": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Target aab",
-    "build:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Target apk"
+    "build:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Target apk",
+    "create-upload-key": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-upload-key.ps1"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.7.1",

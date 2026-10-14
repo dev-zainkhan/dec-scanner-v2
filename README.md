@@ -1,4 +1,4 @@
-# Scanova
+# PDF & Image Scanner
 
 Android document scanner and PDF toolkit built with Expo SDK 56, React Native 0.85,
 and TypeScript. Scans documents, keeps them on the device, and merges, splits,
@@ -10,32 +10,31 @@ compresses, and password-protects PDFs. Ads are served with Google AdMob.
 
 ## One-time setup (Windows)
 
-1. Install [Node.js](https://nodejs.org) (LTS), [Git](https://git-scm.com),
+1. Install [Node.js](https://nodejs.org) (LTS), [Git](https://git-scm.com), and
    [Android Studio](https://developer.android.com/studio) (for the Android SDK and
-   emulator), and JDK 17:
-
-   ```powershell
-   winget install Microsoft.OpenJDK.17
-   ```
-
-   React Native needs JDK 17. The JDK bundled with recent Android Studio versions is
-   too new and breaks the native build. The scripts find the SDK and JDK 17 automatically.
+   emulator). React Native needs JDK 17; the JDK bundled with recent Android Studio
+   versions is too new, so `npm run setup` downloads JDK 17 into the project.
 2. In Android Studio, open **Device Manager** and create a virtual device
    (any recent Pixel with a **Google APIs** or **Google Play** image).
 3. In **SDK Manager > SDK Tools**, install **NDK (Side by side)** and **CMake**.
 4. Clone into a folder **without spaces**, e.g. `D:\scanova` (not `D:\scanova 2`).
    The Android NDK fails with hundreds of "undefined symbol" linker errors when a
    path has a space. If your Windows user name has a space (e.g. `C:\Users\Zain Khan`),
-   the scripts handle it automatically: they link the SDK to `C:\Android\Sdk` and
-   keep Gradle's files in `C:\gradle-cache` and `C:\jtmp`.
+   the scripts reach the SDK through a space-free link automatically.
 
-   Then run the setup script (checks the tools, installs JDK 17 if missing, runs `npm install`):
+   Then run the setup script. It checks the tools, downloads a portable JDK 17 if
+   needed, and runs `npm install`:
 
    ```powershell
    npm run setup
    ```
 
 5. Open the folder in VS Code and install the recommended extensions when prompted.
+
+Everything the build downloads or generates (Gradle cache, temp files, npm cache,
+the portable JDK) is kept in `.build-cache\` inside the project, so nothing new
+is written to drive C:. Expect it to grow to a few GB. Deleting it is safe; the
+next build downloads it again.
 
 ## Daily development (live reload on the emulator)
 
@@ -47,7 +46,7 @@ That one command boots the emulator (if it isn't running), installs the app the
 first time (a native build, several minutes), and starts Metro. Edit any `.ts` /
 `.tsx` file and save: the app on the emulator updates instantly.
 
-In VS Code you can instead press **Ctrl+Shift+B** (task "Scanova: Dev").
+In VS Code you can instead press **Ctrl+Shift+B** (task "Dev").
 
 With several emulators, pick one by name (as listed in Android Studio's Device Manager):
 

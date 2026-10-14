@@ -11,11 +11,14 @@ expo-env.d.ts
 /android
 /ios
 
-# Build outputs
+# Build outputs, plus Gradle cache / temp / portable JDK kept inside the project (scripts/env.ps1)
+.build-cache/
 *.apk
 *.aab
 
 # Signing keys and secrets: never commit these
+signing.properties
+keys/
 *.jks
 *.keystore
 *.p8
