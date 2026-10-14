@@ -1,93 +1,96 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-} from 'react-native';
-import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDocuments } from '@/store/documents';
 import { PageThumbnail } from '@/components/PageThumbnail';
-import { scanNewPages } from '@/lib/scanner';
-import { exportDocumentToPdf } from '@/lib/pdf';
-import { shareFile } from '@/lib/share';
-import { savePdfToDevice } from '@/lib/save';
-import { showInterstitialAd } from '@/lib/ads';
+import { scanPages } from '@/lib/scanner';
+import { documentToPdf } from '@/lib/pdf';
+import { pageCount } from '@/lib/format';
+import { errorMessage, savePdfWithAd, sharePdfWithAd } from '@/features/fileActions';
 import { Button, IconButton, Screen } from '@/components/ui';
-import { colors, radius, spacing } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { colors, radius, spacing, type } from '@/theme';
+
+type Busy = null | 'scan' | 'save' | 'share';
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-
   const doc = useDocuments((s) => s.documents.find((d) => d.id === id));
-  const renameDocument = useDocuments((s) => s.renameDocument);
-  const deleteDocument = useDocuments((s) => s.deleteDocument);
-  const appendPages = useDocuments((s) => s.appendPages);
-  const deletePage = useDocuments((s) => s.deletePage);
-  const movePage = useDocuments((s) => s.movePage);
+  const { renameDocument, deleteDocument, appendPages, deletePage, movePage } = useDocuments.getState();
 
-  const [selectedPageId, setSelectedPageId] = useState<string | undefined>(doc?.pages[0]?.id);
-  const [busy, setBusy] = useState<null | 'pdf' | 'scan' | 'save'>(null);
-  const [titleDraft, setTitleDraft] = useState(doc?.title ?? '');
-  const [editingTitle, setEditingTitle] = useState(false);
-
-  useEffect(() => {
-    navigation.setOptions({ title: '' });
-  }, [navigation]);
-
-  useEffect(() => {
-    if (!doc) return;
-    if (!doc.pages.some((p) => p.id === selectedPageId)) {
-      setSelectedPageId(doc.pages[0]?.id);
-    }
-  }, [doc, selectedPageId]);
-
-  const selectedPage = useMemo(
-    () => doc?.pages.find((p) => p.id === selectedPageId),
-    [doc, selectedPageId],
-  );
-  const selectedIndex = doc?.pages.findIndex((p) => p.id === selectedPageId) ?? -1;
+  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [busy, setBusy] = useState<Busy>(null);
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
 
   if (!doc) {
     return (
       <Screen style={styles.center}>
-        <Text style={styles.muted}>Document not found.</Text>
+        <Text style={styles.muted}>This document no longer exists.</Text>
       </Screen>
     );
   }
 
-  const onAddPages = async () => {
+  // Fall back to the first page when nothing (or a deleted page) is selected.
+  const selectedIndex = Math.max(0, doc.pages.findIndex((p) => p.id === selectedId));
+  const selectedPage = doc.pages[selectedIndex];
+
+  const run = async (kind: Exclude<Busy, null>, task: () => Promise<void>) => {
     if (busy) return;
-    setBusy('scan');
+    setBusy(kind);
     try {
-      const pages = await scanNewPages();
-      if (pages.length) appendPages(doc.id, pages);
-    } catch (err) {
-      Alert.alert('Scan failed', err instanceof Error ? err.message : String(err));
+      await task();
     } finally {
       setBusy(null);
     }
   };
 
+  const exportPdf = async () => {
+    try {
+      return await documentToPdf(doc);
+    } catch (err) {
+      Alert.alert('Export failed', errorMessage(err));
+      return null;
+    }
+  };
+
+  const onSave = () =>
+    run('save', async () => {
+      const uri = await exportPdf();
+      if (uri) await savePdfWithAd(uri, doc.title);
+    });
+
+  const onShare = () =>
+    run('share', async () => {
+      const uri = await exportPdf();
+      if (uri) await sharePdfWithAd(uri);
+    });
+
+  const onAddPages = () =>
+    run('scan', async () => {
+      try {
+        const pages = await scanPages();
+        if (pages.length) appendPages(doc.id, pages);
+      } catch (err) {
+        Alert.alert('Scan failed', errorMessage(err));
+      }
+    });
+
+  const confirmDeleteDocument = (message: string) =>
+    Alert.alert('Delete document?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteDocument(doc.id);
+          router.back();
+        },
+      },
+    ]);
+
   const onDeletePage = (pageId: string) => {
     if (doc.pages.length === 1) {
-      Alert.alert(
-        'Delete document?',
-        'This is the only page. Removing it will delete the whole document.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              await deleteDocument(doc.id);
-              router.back();
-            },
-          },
-        ],
-      );
+      confirmDeleteDocument('This is the only page. Removing it deletes the whole document.');
       return;
     }
     Alert.alert('Delete this page?', undefined, [
@@ -96,69 +99,35 @@ export default function DocumentScreen() {
     ]);
   };
 
-  const onExportAndShare = async () => {
-    if (busy) return;
-    setBusy('pdf');
-    try {
-      await showInterstitialAd();
-      const uri = await exportDocumentToPdf(doc);
-      await shareFile(uri, 'application/pdf');
-    } catch (err) {
-      Alert.alert('Export failed', err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(null);
-    }
+  const commitTitle = () => {
+    if (titleDraft !== null) renameDocument(doc.id, titleDraft);
+    setTitleDraft(null);
   };
-
-  const onSaveToPhone = async () => {
-    if (busy) return;
-    setBusy('save');
-    try {
-      await showInterstitialAd();
-      const uri = await exportDocumentToPdf(doc);
-      const r = await savePdfToDevice(uri, `${doc.title}.pdf`);
-      if (r.status === 'saved') Alert.alert('Saved', 'The PDF was saved to your phone.');
-    } catch (err) {
-      Alert.alert('Save failed', err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const onDeleteDocument = () =>
-    Alert.alert('Delete document?', `"${doc.title}" will be removed permanently.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          await deleteDocument(doc.id);
-          router.back();
-        },
-      },
-    ]);
-
-  const locked = busy !== null || doc.pages.length === 0;
 
   return (
     <Screen>
       <View style={styles.titleRow}>
-        {editingTitle ? (
+        {titleDraft !== null ? (
           <TextInput
             value={titleDraft}
             onChangeText={setTitleDraft}
-            onSubmitEditing={() => { renameDocument(doc.id, titleDraft); setEditingTitle(false); }}
-            onBlur={() => { renameDocument(doc.id, titleDraft); setEditingTitle(false); }}
+            onSubmitEditing={commitTitle}
+            onBlur={commitTitle}
             autoFocus
+            selectTextOnFocus
             style={styles.titleInput}
             returnKeyType="done"
             maxLength={120}
           />
         ) : (
-          <Pressable onPress={() => { setTitleDraft(doc.title); setEditingTitle(true); }} style={{ flex: 1 }}>
+          <Pressable
+            onPress={() => setTitleDraft(doc.title)}
+            accessibilityRole="button"
+            accessibilityHint="Rename document"
+            style={styles.titleText}
+          >
             <Text style={styles.title} numberOfLines={1}>{doc.title}</Text>
-            <Text style={styles.subtitle}>
-              Tap to rename · {doc.pages.length} {doc.pages.length === 1 ? 'page' : 'pages'}
-            </Text>
+            <Text style={styles.subtitle}>Tap to rename · {pageCount(doc.pages.length)}</Text>
           </Pressable>
         )}
         <IconButton
@@ -166,88 +135,81 @@ export default function DocumentScreen() {
           accessibilityLabel="Delete document"
           tone="danger"
           disabled={busy !== null}
-          onPress={onDeleteDocument}
+          onPress={() => confirmDeleteDocument(`"${doc.title}" will be removed permanently.`)}
         />
       </View>
 
       <View style={styles.preview}>
         {selectedPage ? (
-          <Image
-            source={{ uri: selectedPage.processedUri }}
-            style={styles.previewImg}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text style={styles.muted}>No page selected</Text>
-        )}
-        {busy === 'scan' && (
+          <Image source={{ uri: selectedPage.uri }} style={styles.previewImg} resizeMode="contain" />
+        ) : null}
+        {busy === 'scan' ? (
           <View style={styles.previewBusy}>
             <ActivityIndicator color={colors.primary} />
             <Text style={styles.busyText}>Opening scanner…</Text>
           </View>
-        )}
-      </View>
-
-      <View style={styles.stripBlock}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.strip}
-        >
-          {doc.pages.map((page, index) => (
-            <PageThumbnail
-              key={page.id}
-              page={page}
-              index={index}
-              selected={page.id === selectedPageId}
-              onSelect={() => setSelectedPageId(page.id)}
-            />
-          ))}
-        </ScrollView>
-        {selectedPageId ? (
-          <View style={styles.stripControls}>
-            <IconButton
-              icon="chevron-back"
-              accessibilityLabel="Move page earlier"
-              disabled={selectedIndex <= 0}
-              onPress={() => movePage(doc.id, selectedPageId, -1)}
-            />
-            <IconButton
-              icon="chevron-forward"
-              accessibilityLabel="Move page later"
-              disabled={selectedIndex < 0 || selectedIndex >= doc.pages.length - 1}
-              onPress={() => movePage(doc.id, selectedPageId, 1)}
-            />
-            <IconButton
-              icon="close"
-              accessibilityLabel="Delete this page"
-              tone="danger"
-              onPress={() => onDeletePage(selectedPageId)}
-            />
-          </View>
         ) : null}
       </View>
 
-      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.stripScroll}
+        contentContainerStyle={styles.strip}
+      >
+        {doc.pages.map((page, index) => (
+          <PageThumbnail
+            key={page.id}
+            page={page}
+            index={index}
+            selected={index === selectedIndex}
+            onSelect={() => setSelectedId(page.id)}
+          />
+        ))}
+      </ScrollView>
+      {selectedPage ? (
+        <View style={styles.stripControls}>
+          <IconButton
+            icon="chevron-back"
+            accessibilityLabel="Move page earlier"
+            disabled={selectedIndex === 0}
+            onPress={() => movePage(doc.id, selectedPage.id, -1)}
+          />
+          <IconButton
+            icon="chevron-forward"
+            accessibilityLabel="Move page later"
+            disabled={selectedIndex === doc.pages.length - 1}
+            onPress={() => movePage(doc.id, selectedPage.id, 1)}
+          />
+          <IconButton
+            icon="close"
+            accessibilityLabel="Delete this page"
+            tone="danger"
+            onPress={() => onDeletePage(selectedPage.id)}
+          />
+        </View>
+      ) : null}
+
+      <View style={styles.actions}>
         <Button
-          label={busy === 'save' ? 'Saving…' : 'Save to Phone'}
+          label="Save to Phone"
           icon="download-outline"
-          onPress={onSaveToPhone}
-          disabled={locked}
+          onPress={onSave}
+          disabled={busy !== null}
           loading={busy === 'save'}
         />
         <View style={styles.actionRow}>
           <Button
-            label={busy === 'pdf' ? 'Preparing…' : 'Share'}
+            label="Share"
             icon="share-social-outline"
             variant="secondary"
             flex
-            onPress={onExportAndShare}
-            disabled={locked}
-            loading={busy === 'pdf'}
+            onPress={onShare}
+            disabled={busy !== null}
+            loading={busy === 'share'}
           />
           <Button
-            label={busy === 'scan' ? 'Opening…' : 'Add pages'}
+            label="Add pages"
             icon="add"
             variant="secondary"
             flex
@@ -264,28 +226,27 @@ export default function DocumentScreen() {
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   muted: { color: colors.textMuted, fontSize: 14 },
-
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingVertical: spacing.sm,
   },
+  titleText: { flex: 1 },
   title: { ...type.title, fontSize: 20 },
   subtitle: { ...type.caption, marginTop: 2 },
   titleInput: {
-    flex: 1,
     ...type.title,
+    flex: 1,
     fontSize: 20,
     borderBottomWidth: 1,
     borderColor: colors.primary,
     paddingVertical: 4,
   },
-
   preview: {
     flex: 1,
+    minHeight: 220,
     marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
     borderRadius: radius.lg,
@@ -295,7 +256,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    minHeight: 220,
   },
   previewImg: { width: '100%', height: '100%' },
   previewBusy: {
@@ -305,14 +265,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   busyText: { marginTop: spacing.sm, color: colors.text, fontSize: 13 },
-
-  stripBlock: {
-    paddingTop: spacing.md,
-  },
-  strip: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
+  stripScroll: { flexGrow: 0 },
+  strip: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
   stripControls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -320,11 +274,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
   },
-
   actions: {
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.bg,

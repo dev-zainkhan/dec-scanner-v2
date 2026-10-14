@@ -1,0 +1,36 @@
+{
+  // Run with Ctrl+Shift+P > "Tasks: Run Task", or Ctrl+Shift+B for the default (Dev).
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Scanova: Dev (emulator + live reload)",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Scanova: Rebuild native app",
+      "detail": "After adding a package or changing app.config.ts",
+      "type": "npm",
+      "script": "dev:rebuild",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Scanova: Typecheck",
+      "type": "npm",
+      "script": "typecheck",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Scanova: Build release AAB",
+      "type": "npm",
+      "script": "build:aab",
+      "problemMatcher": []
+    }
+  ]
+}

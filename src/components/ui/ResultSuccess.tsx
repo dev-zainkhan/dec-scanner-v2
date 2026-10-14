@@ -1,8 +1,7 @@
 import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { colors, radius, spacing, type } from '@/theme';
 import { Button } from './Button';
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
   detail?: ReactNode;
   children?: ReactNode;
   onDone: () => void;
-  doneLabel?: string;
 }
 
 export function ResultSuccess({
@@ -24,7 +22,6 @@ export function ResultSuccess({
   detail,
   children,
   onDone,
-  doneLabel = 'Done',
 }: Props) {
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
@@ -35,7 +32,7 @@ export function ResultSuccess({
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {detail}
       {children ? <View style={styles.actions}>{children}</View> : null}
-      <Button label={doneLabel} onPress={onDone} variant="ghost" />
+      <Button label="Done" onPress={onDone} variant="ghost" />
     </ScrollView>
   );
 }

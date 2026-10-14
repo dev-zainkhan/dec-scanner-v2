@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/theme/colors';
+import { colors, radius } from '@/theme';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -30,7 +30,9 @@ export function IconButton({
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }: { pressed: boolean }) => [
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled, selected: !!selected }}
+      style={({ pressed }) => [
         styles.btn,
         selected && styles.selected,
         pressed && styles.pressed,

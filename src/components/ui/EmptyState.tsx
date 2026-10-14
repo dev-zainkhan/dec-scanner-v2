@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { colors, radius, spacing, type } from '@/theme';
 import { Button } from './Button';
 
 interface Props {

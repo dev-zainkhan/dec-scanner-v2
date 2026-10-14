@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '@/theme/colors';
+import { colors, radius, spacing } from '@/theme';
 
 interface Props {
   value: string;

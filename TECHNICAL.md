@@ -1,131 +1,109 @@
-# Scanova technical overview
+# Scanova: technical overview
 
-Scanova is an Android-first document scanner built with Expo SDK 56, React
-Native 0.85, and TypeScript. Scanning, library storage, and PDF operations run
-on the device; the app has no backend service.
+Android-first document scanner built with Expo SDK 56 (React Native 0.85,
+TypeScript, Expo Router). Everything runs on the device; there is no backend.
 
-For Windows Android SDK/JDK requirements and the verified APK build procedure,
-see [README.md](./README.md).
+## Libraries
 
-## Technology
-
-| Area | Libraries |
+| Area | Library |
 |---|---|
-| App and language | Expo `~56.0.12`, React Native `0.85.3`, React `19.2.3`, TypeScript `~6.0.3` |
-| Routing and navigation | Expo Router, React Navigation bottom tabs |
-| App state | Zustand with AsyncStorage persistence |
-| Scanning | `react-native-document-scanner-plugin` (native Android document scanner) |
-| PDF creation | `expo-print` renders page images to PDF |
-| PDF editing | `pdf-lib` merges/splits; `@cantoo/pdf-lib` encrypts |
-| Compression | `expo-image-manipulator`; `react-native-pdf-to-image` rasterizes imported PDFs |
-| File access | `expo-file-system/legacy`, `expo-document-picker`, Android Storage Access Framework |
-| Sharing | `expo-sharing` |
-| Ads | `react-native-google-mobile-ads` (sample/test IDs are configured) |
-| UI | Expo vector icons, React Native Gesture Handler, Safe Area Context, React Native Screens |
+| Navigation | Expo Router (file-based), bottom tabs |
+| State | Zustand, persisted to AsyncStorage |
+| Scanning | `react-native-document-scanner-plugin` (Google ML Kit document scanner) |
+| Images â†’ PDF | `expo-print` (HTML with inlined images) |
+| PDF editing | `@cantoo/pdf-lib` (merge, split, encrypt) |
+| PDF â†’ images | `react-native-pdf-to-image` (used by Compress for imported PDFs) |
+| Image re-encoding | `expo-image-manipulator` |
+| Files | `expo-file-system/legacy`, `expo-document-picker`, Storage Access Framework |
+| Ads | `react-native-google-mobile-ads` (AdMob + UMP consent) |
+| Dev builds | `expo-dev-client` |
 
-Dependency versions and build scripts are maintained in [package.json](./package.json)
-and [package-lock.json](./package-lock.json).
-
-## App structure
+## Layout
 
 ```text
-app/
-  _layout.tsx             Root navigation stack and shared ad banner
-  (tabs)/
-    _layout.tsx           Home, Tools, and Settings tabs
-    index.tsx             Document library and scan entry point
-    tools.tsx             Tool tiles rendered from the tool registry
-    me.tsx                Settings/about screen
-  document/[id].tsx       Scanned document details and page management
-  merge.tsx               Merge PDFs
-  split.tsx               Split PDFs
-  compress.tsx            Compress PDFs
-  lock.tsx                Password-protect PDFs
-  ads.tsx                 Offers/test ads
+app/                         Screens (Expo Router: file path = route)
+  _layout.tsx                Root stack, ad banner, app start-up (ads, temp cleanup)
+  (tabs)/index.tsx           Library (Home)
+  (tabs)/tools.tsx           Scan + PDF tool tiles
+  (tabs)/me.tsx              Settings: stats, privacy policy, ad privacy choices
+  document/[id].tsx          Document detail: pages, reorder, rename, save, share
+  merge.tsx split.tsx compress.tsx lock.tsx    PDF tools
 src/
-  components/              Reusable UI components
-  features/                Tool registry and tool orchestration
-  hooks/                   Shared screen flows
-  lib/                     Scanning, storage, PDF, sharing, and save operations
-  store/                   Persisted documents and user preferences
-  theme/                   Shared colors, spacing, and typography
-  types/                   Document and page data types
+  config/admob.json          AdMob app + ad unit IDs (the only place to change them)
+  config/app.ts              Privacy policy URL, support email
+  lib/                       Platform logic, no UI
+    files.ts                 Paths, ids, base64 I/O, temp export files
+    pdf.ts                   Imagesâ†’PDF, merge, split, lock, page count
+    compress.ts              Compression levels and pipeline
+    scanner.ts               Native scanner â†’ Page[]
+    save.ts                  Save to a user-picked folder (SAF), share sheet
+    ads.ts                   Consent, SDK start, banner IDs, interstitial preloading
+    format.ts                Page counts, sizes, dates
+  features/                  Logic shared by several screens
+    sources.ts               PdfSource (library doc | picked PDF) helpers
+    fileActions.ts           Save/share with interstitial + user-facing errors
+    tools.ts                 Tool tile registry for the Tools tab
+  components/                Reusable UI (ui/ holds the design-system primitives)
+  hooks/useScanToDocument.ts Scan â†’ new document â†’ open it
+  store/                     documents.ts (library), prefs.ts (layout)
+  theme/                     Colors, spacing, radius, typography
+  types/                     DocumentRecord, Page
+plugins/withReleaseSigning.js  Wires the Play upload key into release builds
+scripts/                     dev.ps1, build-release.ps1, env.ps1
 ```
 
-## Main application workflows
+`@/` is an alias for `src/`.
 
-### Scan and manage documents
+## Data and storage
 
-1. The Home screen or Tools tab starts the shared `useScanToDocument` flow.
-2. `src/lib/scanner.ts` opens the native scanner for camera capture, edge
-   detection, cropping, and multi-page scanning.
-3. Captured page images are copied into the app's document storage and turned
-   into `Page` records.
-4. `src/store/documents.ts` creates a `DocumentRecord` and persists the library
-   through Zustand's AsyncStorage middleware.
-5. The document detail screen previews pages and supports adding, reordering,
-   deleting, and exporting them.
+- `DocumentRecord { id, title, pages[], createdAt, updatedAt }`;
+  `Page { id, uri, width, height, createdAt }`.
+- Page images live in `<documentDirectory>/pages/`. Deleting a page or
+  document deletes its files.
+- The library is persisted under AsyncStorage key `scanova-documents`
+  (schema `version: 1`). Bump the version and add a `migrate` function
+  whenever the stored shape changes.
+- Every exported/tool PDF is written to its own folder under
+  `<cacheDirectory>/exports/` (unique path, readable file name). The folder is
+  cleared on each app start, so temporary PDFs never pile up.
 
-`DocumentRecord` contains its ID, title, timestamps, and ordered `Page[]`.
-Each page tracks its original and processed image URIs, selected filter,
-dimensions, and creation time. Files live in app-private storage under the
-`docscanner/` directory; deleting pages or documents also removes their image
-files.
+## Flows
 
-The library layout preference (grid or list) is persisted separately in
-`src/store/prefs.ts`.
+**Scan.** `useScanToDocument` â†’ `scanPages()` opens the native scanner, copies the
+images into app storage, `createDocument()` stores them, and the app navigates to
+the document screen.
 
-### PDF tools
+**PDF tools.** Each tool takes a `PdfSource` (a library document or a picked PDF).
+`SourcePicker` handles that first step for single-file tools; Merge uses
+`SourceList` in multi-select mode. `sourceToPdf()` renders library documents to PDF
+on demand. Results are shown with `ResultSuccess`, and saved or shared through
+`savePdfWithAd` / `sharePdfWithAd`.
 
-PDF tools can take either an in-app document or a PDF selected from the phone.
-The shared flow is: choose a source, configure the operation, produce a PDF,
-then save it to a user-chosen device folder or open the system share sheet.
+**Compress.** Library documents: page images are downscaled and re-encoded, then
+rebuilt into a PDF. Imported PDFs: pages are rasterized at a fixed pixel width,
+then re-encoded the same way (text stops being selectable). If the result isn't
+smaller, the original is kept.
 
-- **Merge:** converts scanned documents to PDFs as needed, then concatenates
-  pages in the chosen order with `pdf-lib`.
-- **Split:** writes either two page ranges or one PDF per page with `pdf-lib`.
-- **Compress:** re-encodes scanned-page images. Imported PDFs are rasterized
-  into images before recompression, so their text may no longer be selectable.
-  The size check keeps the original when compression would not reduce it.
-- **Lock:** encrypts a PDF using `@cantoo/pdf-lib`.
+**Save.** The first save asks the user to pick a folder (Storage Access Framework);
+it's remembered. If access is later revoked, the user is asked again automatically.
 
-`src/lib/pdf.ts` creates PDFs from images and scanned documents.
-`src/lib/save.ts` uses Android's Storage Access Framework to save files to a
-folder selected by the user and remembers that folder. Sharing is handled by
-`src/lib/share.ts`.
+**Ads.** On start-up `startAds()` gathers consent (UMP), initializes the SDK only
+if ads may be requested, and preloads an interstitial. `showInterstitialIfReady()`
+shows it only if already loaded and at least 90 s passed since the last one;
+otherwise it returns immediately, so saving/sharing never waits on the network.
+The banner takes no space until an ad has loaded. Debug builds always use test IDs.
 
-### Navigation and the tools registry
-
-Expo Router maps files under `app/` to routes. The root stack registers the
-document and tool screens; the bottom tab navigator provides Home, Tools, and
-Settings. `src/features/tools.ts` is the single source of truth for tool tile
-labels, icons, status, and actions. Ready tool routes are also registered in
-`app/_layout.tsx`.
+**Safe area.** `AppShell` in `app/_layout.tsx` pads the bottom once (for the
+system navigation bar) and places the banner above it. Screens see a bottom inset
+of 0, so they don't add their own bottom padding.
 
 ## Adding a PDF tool
 
-1. Put reusable PDF logic in `src/lib/`; add orchestration in `src/features/`
-   when needed. Reuse existing PDF, save, and share helpers.
-2. Add the screen under `app/`, following the existing choose-source,
-   configure, and result flow.
-3. Register the route in `app/_layout.tsx`.
-4. Add or enable its entry in `src/features/tools.ts`.
-5. Run `npx tsc --noEmit` and test the tool on an Android build.
+1. Put the PDF logic in `src/lib/pdf.ts` (or a new `src/lib/` file).
+2. Add `app/<tool>.tsx`: `SourcePicker` â†’ options â†’ `ResultSuccess` with
+   `savePdfWithAd` / `sharePdfWithAd`.
+3. Register the screen title in `app/_layout.tsx` and add a tile in
+   `src/features/tools.ts`.
+4. `npm run typecheck`, then test on the emulator.
 
-Changes that use only JavaScript/TypeScript can be refreshed through Metro.
-Adding, removing, or changing a native dependency or native configuration
-requires regenerating/rebuilding the Android app before the change is available
-on a device. A release APK bundles its JavaScript and does not load live Metro
-changes.
-
-## Platform notes and current limitations
-
-- Camera scanning and some PDF operations require the custom native Android
-  app; Expo Go does not include these native modules.
-- Use `expo-file-system/legacy` for the existing file-system code.
-- Only the **Original** page filter is currently implemented. Color and
-  black-and-white filter choices are stubs.
-- AdMob uses Google's sample test IDs. Replace these with the correct production
-  IDs before a production ad release.
-- The checked-in Expo config sets Android package `com.docscanner.app` and URL
-  scheme `docscanner`.
+New native packages need `npm run dev:rebuild` before they work.

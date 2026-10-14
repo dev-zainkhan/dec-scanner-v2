@@ -1,8 +1,7 @@
 import { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { spacing } from '@/theme/colors';
-import { type } from '@/theme/typography';
+import { spacing, type } from '@/theme';
 
 interface Props {
   title: string;

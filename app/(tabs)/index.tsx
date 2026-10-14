@@ -7,8 +7,7 @@ import { usePrefs } from '@/store/prefs';
 import { DocumentCard } from '@/components/DocumentCard';
 import { useScanToDocument } from '@/hooks/useScanToDocument';
 import { EmptyState, IconButton, Screen, ScreenHeader, SearchField } from '@/components/ui';
-import { colors, radius, spacing, shadow } from '@/theme/colors';
-import type { DocumentRecord } from '@/types';
+import { colors, radius, shadow, spacing } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -71,7 +70,7 @@ export default function HomeScreen() {
       <FlatList
         key={layout}
         data={filtered}
-        keyExtractor={(d: DocumentRecord) => d.id}
+        keyExtractor={(d) => d.id}
         style={{ flex: 1 }}
         numColumns={isGrid ? 2 : 1}
         columnWrapperStyle={isGrid ? styles.gridRow : undefined}
@@ -80,7 +79,7 @@ export default function HomeScreen() {
           paddingBottom: documents.length > 0 ? 108 : spacing.xl,
           flexGrow: 1,
         }}
-        renderItem={({ item }: { item: DocumentRecord }) =>
+        renderItem={({ item }) =>
           isGrid ? (
             <View style={{ width: gridWidth }}>
               <DocumentCard doc={item} variant="grid" onPress={() => openDoc(item.id)} />
@@ -116,7 +115,8 @@ export default function HomeScreen() {
           onPress={scan}
           disabled={scanning}
           accessibilityLabel="Scan a document"
-          style={({ pressed }: { pressed: boolean }) => [
+          accessibilityRole="button"
+          style={({ pressed }) => [
             styles.fab,
             pressed && styles.fabPressed,
             scanning && styles.fabDisabled,

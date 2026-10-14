@@ -1,0 +1,15 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.exclude": {
+    "android": true,
+    ".expo": true
+  },
+  "search.exclude": {
+    "android": true,
+    "node_modules": true
+  }
+}
